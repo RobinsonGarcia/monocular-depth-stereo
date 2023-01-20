@@ -127,3 +127,15 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# others
+weights/
+*.ckpt
+lightning_logs/
+logs/
+*.pt
+*.sif
+*.pth
+*.npz
+*.zip
+#
