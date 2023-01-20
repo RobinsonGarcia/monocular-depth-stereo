@@ -1,0 +1,6 @@
+stty: standard input: Inappropriate ioctl for device
+stty: standard input: Inappropriate ioctl for device
+10.30.121.173:0.0
+BF5V
+/nethome/algo360/mestrado/monocular-depth-estimation/xlightning/slurm/run.sh: line 3: 46830 Bus error               (core dumped) python3 /nethome/algo360/mestrado/monocular-depth-estimation/train_pl.py --sync_batchnorm --lr=1e-5 --disparity --extended --nearest_up --accumulate_grad_batches=6 --gpus=8 --strategy=ddp --resize_H_to=800 --SIZE 800 --batch_size=1 &>> logs/$SLURM_JOB_ID.txt
+srun: error: atn2b03n08: task 0: Bus error
