@@ -103,7 +103,7 @@ def load_files(mode,cfg):
 
     files = df[bool_mask].saveas.tolist()
 
-    if not cfg['extended']:
+    if cfg['no_extended']:
         remain=[]
         for f in files:
             if 'cube' in f:
@@ -119,9 +119,12 @@ class DepthDataset(Dataset):
 
     def load_filenames(self,mode):
         
-
         files = load_files(mode,self.cfg)
-        return [os.path.join(self.cfg['npz_dir'],f.split('/')[-1]) for f in files]
+        files = [os.path.join(self.cfg['npz_dir'],f.split('/')[-1]) for f in files]
+        if '/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/npz_compressed_384/MD-05_concluido_326+G059_cube_0.npz' in files: files.remove('/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/npz_compressed_384/MD-05_concluido_326+G059_cube_0.npz')
+        if '/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/npz_compressed_384/MD-05_concluido_326+G037_fibb_43.npz' in files: files.remove('/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/npz_compressed_384/MD-05_concluido_326+G037_fibb_43.npz')
+        if '/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/npz_compressed_384/MD-08_missing_files+M-024_fibb_41.npz' in files: files.remove('/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/npz_compressed_384/MD-08_missing_files+M-024_fibb_41.npz')
+        return files
         
     def __init__(
             self, 
@@ -149,7 +152,7 @@ class DepthDataset(Dataset):
 
     def __getitem__(self, idx):
 
-        arr = np.load(self.npz_fps[idx])
+        arr = np.load(self.npz_fps[idx],allow_pickle=True)
 
         rgb_sample =  arr['image']
         depth_sample = arr['depthmap']
@@ -157,11 +160,10 @@ class DepthDataset(Dataset):
         if self.cfg['adjust_depth']: 
             depth_sample = self.adjust_depthmap(depth_sample)
 
-        if self.cfg['fill_in']:
+        if not self.cfg['no_fill_in']:
             depth_sample = fill_in_fast(np.float32(depth_sample),max_depth=self.cfg['max_dist'])
             depth_sample[depth_sample==0]=self.cfg['max_dist']-1
 
-        
         HH = self.cfg['resize_H_to']
         H,W,_=rgb_sample.shape
         factor = W/H
@@ -177,7 +179,6 @@ class DepthDataset(Dataset):
                 sample = self.transform(image=rgb_sample,mask=depth_sample)
                 rgb_sample, depth_sample = sample['image'], sample['mask']
  
-        
         if self.preprocessing_fn:
             sample = self.preprocessing_fn(image=rgb_sample,depth=depth_sample)
             rgb_sample = sample['image']
@@ -202,31 +203,25 @@ class DepthDataModule(pl.LightningDataModule):
     def add_model_specific_args(parent_parser):
         parser = parent_parser.add_argument_group("dm")
 
-        
+        parser.add_argument("--path2meta", type=str, default='/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/consolidated_meta_final_fibb_cube_folds.csv')
+        parser.add_argument("--npz_dir", type=str, default='/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/npz_compressed_384')        
         parser.add_argument("--batch_size", type=int, default=15)
         parser.add_argument("--SIZE", type=int, default=384)
         parser.add_argument("--validation_module", type=str, default='MD-08_missing_files')
-        parser.add_argument("--path2meta", type=str, default='/nethome/algo360/mestrado/dataset_final/consolidated_meta_final_fibb_cube_folds.csv')
-        parser.add_argument("--npz_dir", type=str, default='/nethome/algo360/mestrado/dataset_final/npz_compressed_384')
+        #parser.add_argument("--path2meta", type=str, default='/nethome/algo360/mestrado/dataset_final/consolidated_meta_final_fibb_cube_folds.csv')
+        #parser.add_argument("--npz_dir", type=str, default='/nethome/algo360/mestrado/dataset_final/npz_compressed_384')
         parser.add_argument("--fold", type=int, default=1)
         parser.add_argument("--num_trainloader_workers", type=int, default=6)
         parser.add_argument("--num_validloader_workers", type=int, default=6)
         parser.add_argument("--resize_H_to", type=int, default=384)
 
-        parser.add_argument("--extended", action='store_true')
+        parser.add_argument("--no_extended", action='store_true')
         parser.add_argument("--heavy_aug",action='store_true')
         parser.add_argument("--random_split", action='store_true')
         parser.add_argument("--adjust_depth", action='store_true')
         parser.add_argument("--mask_background",action='store_true')
-        parser.add_argument("--fill_in", action='store_true')
+        parser.add_argument("--no_fill_in", action='store_true')
         parser.add_argument("--no_transform", action='store_true')
-
-        #parser.add_argument("--extended", type=(lambda x:(x).lower()=='true'), default=False)
-        #parser.add_argument("--heavy_aug", type=(lambda x:(x).lower()=='true'), default=False)
-        #parser.add_argument("--random_split", type=(lambda x:(x).lower()=='true'), default=False)
-        #parser.add_argument("--adjust_depth", type=(lambda x:(x).lower()=='true'), default=False)
-        #parser.add_argument("--mask_background", type=(lambda x:(x).lower()=='true'), default=False)
-        #parser.add_argument("--fill_in", type=(lambda x:(x).lower()=='false'), default=True)
         
         return parent_parser
       
@@ -244,24 +239,12 @@ class DepthDataModule(pl.LightningDataModule):
         self.corr_test = DepthDataset(mode='test',transform=self.test_transform, preprocessing_fn=self.preprocessing_fn,**self.cfg)
 
     def train_dataloader(self):
-        #try:
-        #    sampler = DistributedSampler(self.corr_train,num_replicas=self.num_replicas,shuffle=True,) if 'dp' in self.cfg['strategy'] else None    
-        #except:
-        #    sampler=None
         return DataLoader(self.corr_train,batch_size=self.batch_size,drop_last=True , num_workers=self.cfg['num_trainloader_workers'],pin_memory=True)
 
     def val_dataloader(self):
-        #try:
-        #    sampler = DistributedSampler(self.corr_val,num_replicas=self.num_replicas) if 'dp' in self.cfg['strategy'] else None   
-        #except:
-        #    sampler=None
         return DataLoader(self.corr_val,  batch_size=self.batch_size,drop_last=True , num_workers=self.cfg['num_validloader_workers'],pin_memory=True)
         
     def test_dataloader(self):
-        #try:
-        #    sampler = DistributedSampler(self.corr_test,num_replicas=self.num_replicas) if 'dp' in self.cfg['strategy'] else None   
-        #except:
-        #    sampler=None
         return DataLoader(self.corr_test,  batch_size=self.batch_size,drop_last=True , num_workers=self.cfg['num_validloader_workers'],pin_memory=True)
     
 

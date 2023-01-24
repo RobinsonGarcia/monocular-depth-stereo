@@ -31,13 +31,17 @@ else:
         _mean_absolute_error_update,
     )
 def mask_invalid(preds,target,cutoff=None,**cfg):
-    mask = (target < cfg['min_dist']) | (target > cutoff )
 
-    preds=preds[~mask]
-    target=target[~mask]
 
-    if cfg['disparity']:
-        preds = 1./preds
+    if cfg['no_disparity']:
+        mask = (target < cfg['min_dist']) | (target > cutoff )
+
+        preds=preds[~mask]
+        target=target[~mask]
+    else:
+        mask = (target > 1./cfg['min_dist']) | (target < 1./cutoff ) | (preds==0)
+        preds = 1./preds[~mask]
+        target=target[~mask]
     
     return preds , target
 

@@ -14,6 +14,7 @@ class BaseLoss(nn.Module):
 class ScaleInvariantLoss(nn.Module):
     def __init__(self,**cfg):
         super().__init__()
+        print('initializing scale invariant loss')
 
         self.min_dist = cfg['min_dist']
         self.max_dist = cfg['max_dist']
@@ -44,9 +45,12 @@ class ScaleInvariantLoss(nn.Module):
 
         mask = (target < a_min) | (target > a_max) 
 
-        if (self.cfg['disparity']):
+        if not (self.cfg['no_disparity']):
+            print('disparity')
+            mask = (target > 1./a_min) | (target < 1./a_max) 
             target[~mask] = 1/target[~mask]
-            target[mask] = 1/(self.cfg['max_dist']-1)
+            #target[mask] = 1/(self.cfg['max_dist']-1)
+            #target = (target - self.cfg['disp_shift']) / self.cfg['disp_scale']
 
         #target[mask]=0.
         #mask = target < a_min
@@ -56,7 +60,7 @@ class ScaleInvariantLoss(nn.Module):
 
         #==> DEBUG 
 
-        if self.cfg['pred_log']:
+        if not self.cfg['no_pred_log']:
             dist = pred[~mask] - torch.log(target[~mask])
         else: 
             dist = torch.log(pred[~mask]+1e-10) - torch.log(target[~mask])

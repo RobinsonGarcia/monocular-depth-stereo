@@ -27,34 +27,37 @@ class DPTmodel(BaseModel):
         _,parent_parser = DPTmodel.add_base_model_specific_args(parent_parser)
         parser = parent_parser.add_argument_group("dpt")
         parser.add_argument("--features", type=int, default=256)
-        parser.add_argument("--disp_scale", type=float, default=1.)
-        parser.add_argument("--disp_shift", type=float, default=0.)
+
         
         return parent_parser
     def __init__(self,**cfg):
         BaseModel.__init__(self,**cfg)
-        if self.hparams['pretrained_depth']:
-            self.hparams['model'] = '_'.join([self.hparams['model'],self.hparams['pretrained_dataset']])
+        
+        if self.hparams['no_pretrained_depth']:
+            model_name = self.hparams['model']
+        else:
+            model_name = '_'.join([self.hparams['model'],self.hparams['pretrained_dataset']])
 
-
+        print(model_name)
         default_models = {
-        "midas_v21": "/nethome/algo360/mestrado/monocular-depth-estimation/xlightning/models/dpt/weights/midas_v21-f6b98070.pt",
-        "dpt_large": "/nethome/algo360/mestrado/monocular-depth-estimation/xlightning/models/dpt/weights/dpt_large-midas-2f21e586.pt",
-        "dpt_hybrid": "/nethome/algo360/mestrado/monocular-depth-estimation/xlightning/models/dpt/weights/dpt_hybrid-midas-501f0c75.pt",
-        "dpt_hybrid_kitti": "/nethome/algo360/mestrado/monocular-depth-estimation/xlightning/models/dpt/weights/dpt_hybrid_kitti-cb926ef4.pt",
-        "dpt_hybrid_nyu": "/nethome/algo360/mestrado/monocular-depth-estimation/xlightning/models/dpt/weights/dpt_hybrid_nyu-2ce69ec7.pt",
+        "midas_v21_midas": "weights/dpt_weights_midas_v21-f6b98070.pt",
+        "dpt_large_midas": "weights/dpt_weights_dpt_large-midas-2f21e586.pt",
+        "dpt_hybrid_midas": "weights/dpt_weights_dpt_hybrid-midas-501f0c75.pt",
+        "dpt_hybrid_kitti": "weights/dpt_weights_dpt_hybrid_kitti-cb926ef4.pt",
+        "dpt_hybrid_nyu": "weights/dpt_weights_dpt_hybrid_nyu-2ce69ec7.pt",
     }
+
         try:
-            if not os.path.isfile(default_models[self.hparams['model']]):
-                download_from_url(url=download_weights[self.hparams['model']],\
-                            saveto=default_models[self.hparams['model']])
+            if not os.path.isfile(default_models[model_name]):
+                download_from_url(url=download_weights[model_name],\
+                            saveto=default_models[model_name])
         except Exception as e:
             print(e)
     
-        if self.hparams['model'] == 'dpt_hybrid_nyu':
+        if model_name == 'dpt_hybrid_nyu':
             print('DPT hybrid - nyu')
             self.model = DPTDepthModel(
-                path=default_models[self.hparams['model']],
+                path=default_models[model_name],
                 scale=0.000305,
                 shift=0.1378,
                 invert=True,
@@ -64,12 +67,12 @@ class DPTmodel(BaseModel):
                 **self.hparams
             )
 
-        elif self.hparams['model'] == "dpt_hybrid_kitti":
+        elif model_name == "dpt_hybrid_kitti":
             print('DPT hybrid - kitti')
 
 
             self.model = DPTDepthModel(
-                path=default_models[self.hparams['model']],
+                path=default_models[model_name],
                 scale=0.00006016,
                 shift=0.00579,
                 invert=True,
@@ -80,10 +83,10 @@ class DPTmodel(BaseModel):
         )
 
         
-        elif self.hparams['model'] == "dpt_large":  # DPT-Large
+        elif model_name == "dpt_large_midas":  # DPT-Large
             print('DPT large - midas')
             self.model= DPTDepthModel(
-                path=default_models[self.hparams['model']],#if self.hparams['pretrained_depth'] else None,
+                path=default_models[model_name],#if self.hparams['pretrained_depth'] else None,
                 backbone="vitl16_384",
                 non_negative=False,
                 enable_attention_hooks=False,
@@ -91,11 +94,34 @@ class DPTmodel(BaseModel):
             )
 
 
-        elif self.hparams['model'] == "dpt_hybrid":
+        elif model_name == "dpt_hybrid_midas":
             print('DPT hybrid - midas')
             
             self.model = DPTDepthModel(
-                        path=default_models[self.hparams['model']],# if self.hparams['pretrained_depth'] else None,
+                        path=default_models[model_name],# if self.hparams['pretrained_depth'] else None,
+                        backbone="vitb_rn50_384",
+                        non_negative=False,
+                        invert=False,
+                        enable_attention_hooks=False,
+                        **self.hparams
+                    )
+
+        elif model_name == "dpt_large":  # DPT-Large
+            print('DPT large -  from scratch')
+            self.model= DPTDepthModel(
+                path=None,#if self.hparams['pretrained_depth'] else None,
+                backbone="vitl16_384",
+                non_negative=False,
+                enable_attention_hooks=False,
+                **self.hparams
+            )
+
+
+        elif model_name == "dpt_hybrid":
+            print('DPT hybrid - from scratch')
+            
+            self.model = DPTDepthModel(
+                        path=None,# if self.hparams['pretrained_depth'] else None,
                         backbone="vitb_rn50_384",
                         non_negative=False,
                         invert=False,
@@ -105,12 +131,16 @@ class DPTmodel(BaseModel):
         else:
             raise
 
+        self.norm_layer = torch.nn.LayerNorm([1,self.hparams['SIZE'],self.hparams['SIZE']])
 
+    def _forward(self,x,**kwargs):
+        y = self.model(x).unsqueeze(1)
 
-    def _forward(self,x,inv_map=False):
+        y = self.norm_layer(y)
+        
 
-
-        return {'output':self.model(x).unsqueeze(1),'others':[]}
+        out = {'output':y,'others':[]}
+        return out
 
          
         

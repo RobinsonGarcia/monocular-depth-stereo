@@ -329,6 +329,7 @@ class BaseLogImagesCallback(Callback):
             return depth
     def on_train_batch_end(self,trainer, pl_module, outputs, batch, batch_idx, unused=0):
         #if (batch_idx==1)|(batch_idx==5):
+        print(torch.mean(pl_module.norm_layer.weight),torch.mean(pl_module.norm_layer.bias))
         """
         if batch_idx==0:
             sample = batch
@@ -362,7 +363,7 @@ class BaseLogImagesCallback(Callback):
             #    bn_params = (pl_module.norm.running_var,pl_module.norm.running_mean)
             #except:
             #    bn_params=(None,None)
-            self.tb_log(x=sample['processed_image'],y=sample['processed_mask'],y_hat=y_hat,ix=batch_idx,
+            self.tb_log(x=sample['processed_image'],y=sample['processed_mask'],filename=sample['filename'],y_hat=y_hat,ix=batch_idx,
             logger=pl_module.logger,hparams=pl_module.hparams,global_step=global_step,mode='val',log=pl_module.log,log_pcd=True)
 
 class CORRLogImagesCallback(BaseLogImagesCallback):
@@ -397,7 +398,7 @@ from xlightning.depthmap import depthmap_to_3D
 
 import open3d as o3d
 import os
-def save_pointcloud(xyz,rgb,logger,mode):
+def save_pointcloud(xyz,rgb,logger,t,mode):
     # Pass xyz to Open3D.o3d.geometry.PointCloud and visualize
     B = xyz.shape[0]
     for i in range(B):
@@ -406,7 +407,7 @@ def save_pointcloud(xyz,rgb,logger,mode):
         pcd.colors = o3d.utility.Vector3dVector(rgb[i].cpu().numpy()/255.)
         
         #path = os.path.join(logger._save_dir,logger._name,str(logger._version),'cloud_{}_{}.ply'.format(mode,i))
-        path = os.path.join(logger._save_dir,'cloud_{}_{}.ply'.format(mode,i))
+        path = os.path.join(logger._save_dir,'cloud_{}_{}_{}.ply'.format(mode,i,t))
         
         o3d.io.write_point_cloud(path, pcd)
     
@@ -416,7 +417,7 @@ def save_pointcloud(xyz,rgb,logger,mode):
 import wandb
 import pdb
 class DEPTHLogImagesCallback(BaseLogImagesCallback):
-    def tb_log(self,x,y,y_hat,ix,logger,global_step,hparams,mode='train',log=None,log_pcd=False):
+    def tb_log(self,x,y,filename,y_hat,ix,logger,global_step,hparams,mode='train',log=None,log_pcd=False,use_wandb=False):
         with torch.no_grad():
 
             imgs = (self.inv_norm(x)).float()
@@ -466,9 +467,10 @@ class DEPTHLogImagesCallback(BaseLogImagesCallback):
 
                 #point_cloud = torch.hstack([xyz_target_t[0],rgb_t_1[0]])
 
-                logger.experiment.log({
-                    "batch_{}_pcd_target_{}".format(ix,mode):wandb.Object3D(point_cloud.cpu().numpy())
-                })
+                if use_wandb:
+                    logger.experiment.log({
+                        "{}_pcd_target_{}".format(filename).format(mode):wandb.Object3D(point_cloud.cpu().numpy())
+                    })
 
             
                 #log({"point_cloud_target": wandb.Object3D(point_cloud.cpu().numpy())})
@@ -478,10 +480,10 @@ class DEPTHLogImagesCallback(BaseLogImagesCallback):
                 point_cloud = point_cloud[~mask[0],:].reshape(-1,6)
                 #print(point_cloud.shape)
                 #point_cloud = torch.hstack([xyz_pred_t[0],rgb_t_2[0]])
-                
-                logger.experiment.log({
-                    "batch_{}_pcd_pred_{}".format(ix,mode):wandb.Object3D(point_cloud.cpu().numpy())
-                })
+                if use_wandb:
+                    logger.experiment.log({
+                        "{}_pcd_pred_{}".format(mode,filename):wandb.Object3D(point_cloud.cpu().numpy())
+                    })
             #log({"point_cloud_pred": wandb.Object3D(point_cloud.cpu().numpy())})
             """"
 

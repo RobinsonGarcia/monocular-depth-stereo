@@ -28,18 +28,20 @@ class BaseModel(LightningModule):
         parser.add_argument("--max_dist", type=float, default=80)
         parser.add_argument("--scale_invariant_ratio", type=float, default=.5)
         parser.add_argument("--loss_cut", type=float, default=.8)      
-        parser.add_argument("--pretrained_dataset", type=str, default='kitti')
+        parser.add_argument("--pretrained_dataset", type=str, default='midas')
 
 
         parser.add_argument("--resize_logits", action='store_true')      
         parser.add_argument("--extend_3d", action='store_true')
-        parser.add_argument("--disparity", action='store_true')
+        parser.add_argument("--no_disparity", action='store_true')
         parser.add_argument("--log_scale",action='store_true')        
-        parser.add_argument("--pretrained_depth", action='store_true')    
+        parser.add_argument("--no_pretrained_depth", action='store_true')    
         parser.add_argument("--freeze_encoder",action='store_true') 
         parser.add_argument("--add_dropout", action='store_true')  
         parser.add_argument("--nearest_up",action='store_true')   
-        parser.add_argument("--pred_log",action='store_true')        
+        parser.add_argument("--no_pred_log",action='store_true')  
+        parser.add_argument("--disp_scale", type=float, default=1.)
+        parser.add_argument("--disp_shift", type=float, default=0.)      
 
         #parser.add_argument("--resize_logits", type=(lambda x:(x).lower()=='true'), default=True)      
         #parser.add_argument("--extend_3d", type=(lambda x:(x).lower()=='true'), default=False)
@@ -116,7 +118,7 @@ class BaseModel(LightningModule):
         
     def configure_optimizers(self):
         parameters = [
-                {'params': self.model.parameters(),'lr':self.hparams['lr']}
+                {'params': self.parameters(),'lr':self.hparams['lr']}
                 
             ]
      
@@ -158,13 +160,14 @@ class BaseModel(LightningModule):
 
         loss = self.loss_fn(logits, labels)
         
-        if self.hparams['pred_log']:
+        if self.hparams['no_pred_log']:
             logits = torch.e**logits
 
-        if self.hparams['disparity']:
+        if not self.hparams['no_disparity']:
+            #logits = logits * self.hparams['disp_scale'] + self.hparams['disp_shift']
             mask = logits == 0
             logits[~mask] = 1/logits[~mask]
-            logits[mask] = self.hparams['max_dist']-1
+            #logits[mask] = self.hparams['max_dist']-1
 
         metrics = self.train_metrics(logits,labels)
         
@@ -187,13 +190,13 @@ class BaseModel(LightningModule):
 
         val_loss = self.loss_fn(logits, labels)#,weight=sample['weights'])
 
-        if self.hparams['pred_log']:
+        if self.hparams['no_pred_log']:
             logits = torch.e**logits
 
-        if self.hparams['disparity']:
+        if not self.hparams['no_disparity']:
+            #logits = logits * self.hparams['disp_scale'] + self.hparams['disp_shift']
             mask = logits == 0
             logits[~mask] = 1/logits[~mask]
-            logits[mask] = self.hparams['max_dist']-1
 
         metrics = self.valid_metrics(logits,labels)             
         
