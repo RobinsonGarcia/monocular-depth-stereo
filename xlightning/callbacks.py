@@ -422,15 +422,6 @@ class DEPTHLogImagesCallback(BaseLogImagesCallback):
 
             imgs = (self.inv_norm(x)).float()
 
-                
-                
-            #mask = (y_hat < self.cfg['min_dist']) | (y_hat > self.cfg['max_dist'])
-            #y[mask]=0.0
-            #y_hat[mask]=0.0
-
-            #y = torch.clamp(y, min=self.cfg['min_dist'], max=self.cfg['max_dist'])
-            #y_hat = torch.clamp(y_hat, min=self.cfg['min_dist'], max=self.cfg['max_dist'])
-
             target = y
             
             B,C,H,W = x.shape
@@ -469,7 +460,7 @@ class DEPTHLogImagesCallback(BaseLogImagesCallback):
 
                 if use_wandb:
                     logger.experiment.log({
-                        "{}_pcd_target_{}".format(mode,filename[0]):wandb.Object3D(point_cloud.cpu().numpy())
+                        "{}_pcd_target_{}".format(mode,ix):wandb.Object3D(point_cloud.cpu().numpy())
                     })
 
             
@@ -482,7 +473,7 @@ class DEPTHLogImagesCallback(BaseLogImagesCallback):
                 #point_cloud = torch.hstack([xyz_pred_t[0],rgb_t_2[0]])
                 if use_wandb:
                     logger.experiment.log({
-                        "{}_pcd_pred_{}".format(mode,filename[0]):wandb.Object3D(point_cloud.cpu().numpy())
+                        "{}_pcd_pred_{}".format(mode,ix):wandb.Object3D(point_cloud.cpu().numpy())
                     })
             #log({"point_cloud_pred": wandb.Object3D(point_cloud.cpu().numpy())})
             """"
@@ -534,6 +525,7 @@ class DEPTHLogImagesCallback(BaseLogImagesCallback):
             y = (y+torch.tensor(.001))/(y_max+torch.tensor(.001))
 
             #y = y/y_max
+            print(y.max(),y_hat.max(),y_max)
 
             def colorize(y):
                 cmap =  plt.get_cmap(hparams['cmap'])

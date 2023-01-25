@@ -176,7 +176,6 @@ if __name__=="__main__":
     #=== load datamodule:
     print('loading datamodule...')
     dm = DataModule(**cfg)
-    #dm.setup(mode='train')
 
     #=== load callbacks:
     print('loading callbacks...')
@@ -201,7 +200,7 @@ if __name__=="__main__":
         logger=logger,
         callbacks=callbacks,
         sync_batchnorm=not cfg['no_sync_batchnorm'],
-        num_sanity_val_steps=10,
+        num_sanity_val_steps=-1,
         accumulate_grad_batches=cfg['accumulate_grad_batches'],
         gradient_clip_val=0.5,
         gradient_clip_algorithm="value")
