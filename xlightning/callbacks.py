@@ -417,7 +417,7 @@ def save_pointcloud(xyz,rgb,logger,t,mode):
 import wandb
 import pdb
 class DEPTHLogImagesCallback(BaseLogImagesCallback):
-    def tb_log(self,x,y,filename,y_hat,ix,logger,global_step,hparams,mode='train',log=None,log_pcd=False,use_wandb=False):
+    def tb_log(self,x,y,filename,y_hat,ix,logger,global_step,hparams,mode='train',log=None,log_pcd=False,use_wandb=True):
         with torch.no_grad():
 
             imgs = (self.inv_norm(x)).float()
@@ -442,7 +442,7 @@ class DEPTHLogImagesCallback(BaseLogImagesCallback):
                 mask = (y_t < self.cfg['min_dist']) | (y_t > self.cfg['max_dist'])
                 #mask = mask.reshape(B,H*W)
 
-                mask1 = torch.mean(xyz_target_t,axis=-1) == 0.0
+                #mask1 = torch.mean(xyz_target_t,axis=-1) == 0.0
                 rgb_t_1 = (255*imgs.permute(0,2,3,1).reshape(B,H*W,3))
                 #rgb_t_1=rgb_t_1[mask]
                 #rgb_t_1[mask]=torch.tensor([0,0,0]).type_as(rgb_t_1)
@@ -469,7 +469,7 @@ class DEPTHLogImagesCallback(BaseLogImagesCallback):
 
                 if use_wandb:
                     logger.experiment.log({
-                        "{}_pcd_target_{}".format(filename).format(mode):wandb.Object3D(point_cloud.cpu().numpy())
+                        "{}_pcd_target_{}".format(mode,filename[0]):wandb.Object3D(point_cloud.cpu().numpy())
                     })
 
             
@@ -482,7 +482,7 @@ class DEPTHLogImagesCallback(BaseLogImagesCallback):
                 #point_cloud = torch.hstack([xyz_pred_t[0],rgb_t_2[0]])
                 if use_wandb:
                     logger.experiment.log({
-                        "{}_pcd_pred_{}".format(mode,filename):wandb.Object3D(point_cloud.cpu().numpy())
+                        "{}_pcd_pred_{}".format(mode,filename[0]):wandb.Object3D(point_cloud.cpu().numpy())
                     })
             #log({"point_cloud_pred": wandb.Object3D(point_cloud.cpu().numpy())})
             """"
@@ -542,8 +542,10 @@ class DEPTHLogImagesCallback(BaseLogImagesCallback):
 
             abs_error = torch.abs(y - y_hat)
             abs_error = colorize(abs_error)
+            
             y = colorize(y)
             y_hat = colorize(y_hat)
+           
 
 
 

@@ -45,8 +45,7 @@ class ScaleInvariantLoss(nn.Module):
 
         mask = (target < a_min) | (target > a_max) 
 
-        if not (self.cfg['no_disparity']):
-            print('disparity')
+        if not self.cfg['no_disparity']:
             mask = (target > 1./a_min) | (target < 1./a_max) 
             target[~mask] = 1/target[~mask]
             #target[mask] = 1/(self.cfg['max_dist']-1)

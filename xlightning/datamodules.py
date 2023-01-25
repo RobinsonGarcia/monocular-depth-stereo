@@ -203,13 +203,13 @@ class DepthDataModule(pl.LightningDataModule):
     def add_model_specific_args(parent_parser):
         parser = parent_parser.add_argument_group("dm")
 
-        parser.add_argument("--path2meta", type=str, default='/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/consolidated_meta_final_fibb_cube_folds.csv')
-        parser.add_argument("--npz_dir", type=str, default='/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/npz_compressed_384')        
+        #parser.add_argument("--path2meta", type=str, default='/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/consolidated_meta_final_fibb_cube_folds.csv')
+        #parser.add_argument("--npz_dir", type=str, default='/Users/robinsongarcia/Documents/projects/mestrado/dataset_final/npz_compressed_384')        
         parser.add_argument("--batch_size", type=int, default=15)
         parser.add_argument("--SIZE", type=int, default=384)
         parser.add_argument("--validation_module", type=str, default='MD-08_missing_files')
-        #parser.add_argument("--path2meta", type=str, default='/nethome/algo360/mestrado/dataset_final/consolidated_meta_final_fibb_cube_folds.csv')
-        #parser.add_argument("--npz_dir", type=str, default='/nethome/algo360/mestrado/dataset_final/npz_compressed_384')
+        parser.add_argument("--path2meta", type=str, default='/nethome/algo360/mestrado/dataset_final/consolidated_meta_final_fibb_cube_folds.csv')
+        parser.add_argument("--npz_dir", type=str, default='/nethome/algo360/mestrado/dataset_final/npz_compressed_384')
         parser.add_argument("--fold", type=int, default=1)
         parser.add_argument("--num_trainloader_workers", type=int, default=6)
         parser.add_argument("--num_validloader_workers", type=int, default=6)

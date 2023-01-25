@@ -24,7 +24,7 @@ source $HOME/proxy.sh BF5V @cAnada2030
 
 module load cuda
 
-srun singularity exec --nv --home /nethome/algo360/mestrado/tmp_home/robinson.garcia --bind /nethome/algo360/mestrado:/nethome/algo360/mestrado /nethome/algo360/mestrado/torch.sif bash /nethome/algo360/mestrado/monocular-depth-estimation/xlightning/slurm/run.sh 
+srun singularity exec --nv --home /nethome/algo360/mestrado/tmp_home/robinson.garcia --bind /nethome/algo360/mestrado:/nethome/algo360/mestrado /nethome/algo360/mestrado/torch.sif bash /nethome/algo360/mestrado/monocular-depth-stereo/xlightning/slurm/run.sh 
 
 
 

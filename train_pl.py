@@ -64,7 +64,7 @@ if __name__=="__main__":
     ('dpt_hybrid', 13)]
 
 
-    TASK_ID = 0 #int(os.environ['SLURM_ARRAY_TASK_ID'])
+    TASK_ID = 2 #int(os.environ['SLURM_ARRAY_TASK_ID'])
     MODEL_NAME , FOLD = experiments[TASK_ID]
 
     WANDB_PROJECT='mde_highres_kfold'
@@ -106,7 +106,7 @@ if __name__=="__main__":
         ) 
 
     parser.add_argument(
-            "--sync_batchnorm",action='store_true'
+            "--no_sync_batchnorm",action='store_true'
         ) 
 
     parser.add_argument(
@@ -169,6 +169,9 @@ if __name__=="__main__":
     else:
         model = LitModel(**cfg)
 
+    model.norm_layer.weight.data.fill_(0.00006016,)
+    model.norm_layer.bias.data.fill_(0)
+
     logger[0].watch(model,log="all")
     #=== load datamodule:
     print('loading datamodule...')
@@ -197,8 +200,8 @@ if __name__=="__main__":
         max_epochs=cfg['max_epochs'],
         logger=logger,
         callbacks=callbacks,
-        sync_batchnorm=cfg['sync_batchnorm'],
-        num_sanity_val_steps=0,
+        sync_batchnorm=not cfg['no_sync_batchnorm'],
+        num_sanity_val_steps=10,
         accumulate_grad_batches=cfg['accumulate_grad_batches'],
         gradient_clip_val=0.5,
         gradient_clip_algorithm="value")

@@ -160,7 +160,7 @@ class BaseModel(LightningModule):
 
         loss = self.loss_fn(logits, labels)
         
-        if self.hparams['no_pred_log']:
+        if not self.hparams['no_pred_log']:
             logits = torch.e**logits
 
         if not self.hparams['no_disparity']:
@@ -190,7 +190,7 @@ class BaseModel(LightningModule):
 
         val_loss = self.loss_fn(logits, labels)#,weight=sample['weights'])
 
-        if self.hparams['no_pred_log']:
+        if not self.hparams['no_pred_log']:
             logits = torch.e**logits
 
         if not self.hparams['no_disparity']:
